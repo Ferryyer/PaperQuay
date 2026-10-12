@@ -383,7 +383,7 @@ async function lookupCrossrefMetadata({ doi, title }) {
   const endpoint = doi
     ? `https://api.crossref.org/works/${encodeURIComponent(doi)}`
     : title
-      ? `https://api.crossref.org/works?rows=1&query.title=${encodeURIComponent(title)}`
+      ? `https://api.crossref.org/works?rows=5&query.title=${encodeURIComponent(title)}`
       : '';
 
   if (!endpoint) {
@@ -391,7 +391,9 @@ async function lookupCrossrefMetadata({ doi, title }) {
   }
 
   const data = await readRequestJson(await fetch(endpoint), 'Crossref metadata');
-  const item = doi ? data.message : data.message?.items?.[0];
+  const item = doi ? data.message : data.message?.items?.find((candidate) =>
+    titleSimilarity(title, firstString(candidate?.title)) >= 0.78,
+  );
   return mapCrossrefWork(item);
 }
 

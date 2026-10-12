@@ -4,6 +4,8 @@
   中文 | <a href="./README.md">English</a>
 </p>
 
+> **本仓库是 [WangQrkkk/PaperQuay](https://github.com/WangQrkkk/PaperQuay) 的个人二次开发版本。** 新增 MinerU Agent 轻量免 Key 解析：自动完成 PDF 签名上传、异步状态查询、Markdown 下载与本地缓存，并将结果接入结构化阅读和全文翻译；同时加入带 PDF 首页预览的文献库卡片视图与列表视图。原有 Token 精准解析仍可使用。轻量服务限制单文件 10 MB、20 页，只返回不含 PDF 区域坐标的 Markdown，且可能触发 IP 限流；AI 翻译仍需单独配置模型 API。
+
 <p align="center">
   <strong>开源 AI 论文工作台，覆盖 PDF 阅读、全文翻译、结构化概览、内联笔记、Zotero 导入、Agent 工作流和本地 RAG。</strong>
 </p>

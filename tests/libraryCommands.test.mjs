@@ -102,3 +102,65 @@ test('library_update_settings migrates stored PDFs into the new storage director
     rmSync(appPaths.dataDir, { recursive: true, force: true });
   }
 });
+
+test('title lookup rejects unrelated Crossref metadata, including a wrong 2006 year', async () => {
+  const appPaths = createAppPaths();
+  const store = createLibraryStore(appPaths);
+  const originalFetch = globalThis.fetch;
+
+  try {
+    const library = store.load();
+    library.settings.openAlexEnabled = false;
+    await store.save(library);
+    globalThis.fetch = async (url) => {
+      assert.match(url, /api\.crossref\.org\/works\?rows=5/);
+      return new Response(JSON.stringify({ message: { items: [{
+        title: ['ECHO: A Journal of Higher Learning'],
+        DOI: '10.2307/40253463',
+        issued: { 'date-parts': [[2006]] },
+        'container-title': ['Academe'],
+      }] } }), { status: 200 });
+    };
+
+    const commands = createLibraryCommands({ appPaths, store });
+    const result = await commands.lookup_literature_metadata({ request: {
+      title: 'ECHO: Prune To Act, Trace To Learn With Selective Turn Memory In Agentic RL',
+    } });
+
+    assert.equal(result, null);
+  } finally {
+    globalThis.fetch = originalFetch;
+    store.close();
+    rmSync(appPaths.dataDir, { recursive: true, force: true });
+  }
+});
+
+test('title lookup selects a matching Crossref result after an unrelated first hit', async () => {
+  const appPaths = createAppPaths();
+  const store = createLibraryStore(appPaths);
+  const originalFetch = globalThis.fetch;
+
+  try {
+    const library = store.load();
+    library.settings.openAlexEnabled = false;
+    await store.save(library);
+    globalThis.fetch = async () => new Response(JSON.stringify({ message: { items: [
+      { title: ['Unrelated ECHO article'], issued: { 'date-parts': [[2006]] } },
+      {
+        title: ['ECHO: Prune To Act, Trace To Learn With Selective Turn Memory In Agentic RL'],
+        issued: { 'date-parts': [[2026]] },
+      },
+    ] } }), { status: 200 });
+
+    const commands = createLibraryCommands({ appPaths, store });
+    const result = await commands.lookup_literature_metadata({ request: {
+      title: 'ECHO: Prune To Act, Trace To Learn With Selective Turn Memory In Agentic RL',
+    } });
+
+    assert.equal(result?.year, '2026');
+  } finally {
+    globalThis.fetch = originalFetch;
+    store.close();
+    rmSync(appPaths.dataDir, { recursive: true, force: true });
+  }
+});

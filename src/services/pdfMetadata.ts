@@ -3,6 +3,7 @@ import { readLocalBinaryFile } from './desktop';
 import type { LocalPdfMetadataPreview } from '../types/metadata';
 import { buildPdfJsDataDocumentInit } from '../utils/pdfJsCompatibility';
 import { getFileNameFromPath } from '../utils/text';
+import { inferPdfPublicationYear } from './pdfYear';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -182,11 +183,6 @@ function cleanAuthorsCandidate(value: string): string[] {
 function extractDoiCandidate(value: string): string | null {
   const match = normalizeWhitespace(value).match(DOI_PATTERN);
   return match ? match[0].replace(/[.,;)\]}]+$/, '') : null;
-}
-
-function parsePdfMetadataDate(value: string): string | null {
-  const match = value.match(/(?:D:)?((?:19|20)\d{2})/);
-  return match ? match[1] : null;
 }
 
 function isLowSignalLine(value: string): boolean {
@@ -711,7 +707,7 @@ export async function extractLocalPdfMetadataPreview(
     const authors = cleanAuthorsCandidate(rawAuthor);
     const publication =
       rawSubject && !/^(摘要|abstract|keywords?)$/i.test(rawSubject) ? rawSubject : null;
-    const year = parsePdfMetadataDate(dateYear);
+    const year = inferPdfPublicationYear(firstPageText, path, dateYear);
 
     firstPage.cleanup();
 

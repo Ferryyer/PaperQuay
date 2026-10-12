@@ -13,6 +13,8 @@ import {
   BookOpenText,
   FilePlus2,
   GripVertical,
+  LayoutGrid,
+  List,
   RefreshCw,
   Search,
   Star,
@@ -31,6 +33,7 @@ import {
   paperPdfPath,
 } from '../literatureUi';
 import LiteratureReadingHeatmapPreview from './LiteratureReadingHeatmapPreview';
+import PaperPdfCover from './PaperPdfCover';
 
 export interface LiteraturePaperListStatus {
   mineruParsed: boolean;
@@ -40,6 +43,12 @@ export interface LiteraturePaperListStatus {
 
 export type LiteraturePaperListSortBy = NonNullable<ListPapersRequest['sortBy']>;
 export type LiteraturePaperListSortDirection = NonNullable<ListPapersRequest['sortDirection']>;
+type LiteraturePaperViewMode = 'grid' | 'list';
+
+const PAPER_VIEW_MODE_STORAGE_KEY = 'paperquay-literature-view-mode-v1';
+function loadPaperViewMode(): LiteraturePaperViewMode {
+  return localStorage.getItem(PAPER_VIEW_MODE_STORAGE_KEY) === 'list' ? 'list' : 'grid';
+}
 
 interface LiteraturePaperListProps {
   loading: boolean;
@@ -128,8 +137,14 @@ export default function LiteraturePaperList({
   const [categoryDraggingPaperId, setCategoryDraggingPaperId] = useState<string | null>(null);
   const [suppressClickPaperId, setSuppressClickPaperId] = useState<string | null>(null);
   const [heatmapRevision, setHeatmapRevision] = useState(0);
+  const [viewMode, setViewMode] = useState<LiteraturePaperViewMode>(loadPaperViewMode);
   const manualSortingEnabled = sortBy === 'manual';
   const sortValue = `${sortBy}:${sortDirection}`;
+
+  const updateViewMode = (nextMode: LiteraturePaperViewMode) => {
+    setViewMode(nextMode);
+    localStorage.setItem(PAPER_VIEW_MODE_STORAGE_KEY, nextMode);
+  };
   const heatmapsByPaperId = useMemo(() => {
     if (!showReadingHeatmap || papers.length === 0) {
       return {} as Record<string, PdfReadingHeatmap | null>;
@@ -420,15 +435,48 @@ export default function LiteraturePaperList({
       onWheelCapture={handleWheelCapture}
       className="pq-library-pane flex h-full min-h-0 flex-col overflow-hidden border-r"
     >
-      <header className="pq-toolbar px-4 py-3">
-        <div className="flex flex-wrap items-center gap-2.5">
+      <header className="pq-toolbar px-5 pb-3 pt-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-[-0.025em] text-[var(--pq-text)]">
+              {l('文献库', 'Library')}
+            </h1>
+            <p className="mt-1 text-xs text-[var(--pq-text-muted)]">
+              {l(`共 ${papers.length} 篇文献`, `${papers.length} papers`)}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={working}
+              className="pq-button h-9 px-3 text-sm"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" strokeWidth={1.9} />
+              {l('刷新', 'Refresh')}
+            </button>
+
+            <button
+              type="button"
+              onClick={onImportPdfs}
+              disabled={working}
+              className="pq-button-primary h-9 px-4 text-sm shadow-[0_10px_24px_var(--pq-accent-shadow)]"
+            >
+              <FilePlus2 className="mr-2 h-4 w-4" strokeWidth={1.9} />
+              {l('添加文献', 'Add Papers')}
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2.5">
           <div className="relative min-w-[260px] flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" strokeWidth={1.8} />
             <input
               value={searchQuery}
               onChange={(event) => onSearchQueryChange(event.target.value)}
-              placeholder={l('搜索标题、作者、摘要、DOI...', 'Search title, author, abstract, DOI...')}
-              className="pq-input h-9 w-full pl-9 pr-3 text-sm placeholder:text-[var(--pq-text-faint)]"
+              placeholder={l('搜索标题、作者、摘要或 DOI', 'Search title, author, abstract, or DOI')}
+              className="pq-input h-10 w-full pl-9 pr-3 text-sm placeholder:text-[var(--pq-text-faint)]"
             />
           </div>
 
@@ -442,7 +490,7 @@ export default function LiteraturePaperList({
 
               onSortChange(nextSortBy, nextDirection);
             }}
-            className="pq-input h-9 w-[168px] px-3 text-sm"
+            className="pq-input h-10 w-[168px] px-3 text-sm"
             title={l('排序', 'Sort')}
           >
             <option value="manual:asc">{l('手动排序', 'Manual Order')}</option>
@@ -456,25 +504,36 @@ export default function LiteraturePaperList({
             <option value="author:asc">{l('作者 A-Z', 'Author A-Z')}</option>
           </select>
 
-          <button
-            type="button"
-            onClick={onImportPdfs}
-            disabled={working}
-            className="pq-button-primary h-9 px-3 text-sm"
-          >
-            <FilePlus2 className="mr-2 h-4 w-4" strokeWidth={1.9} />
-            {l('导入 PDF', 'Import PDF')}
-          </button>
-
-          <button
-            type="button"
-            onClick={onRefresh}
-            disabled={working}
-            className="pq-button h-9 px-3 text-sm"
-          >
-            <RefreshCw className="mr-2 h-4 w-4" strokeWidth={1.9} />
-            {l('刷新', 'Refresh')}
-          </button>
+          <div className="flex h-10 items-center rounded-xl border border-[var(--pq-border)] bg-white/72 p-1 shadow-sm dark:bg-white/5">
+            <button
+              type="button"
+              onClick={() => updateViewMode('grid')}
+              aria-pressed={viewMode === 'grid'}
+              title={l('卡片视图', 'Grid view')}
+              className={clsx(
+                'flex h-8 w-8 items-center justify-center rounded-lg transition',
+                viewMode === 'grid'
+                  ? 'bg-[var(--pq-accent-soft)] text-[var(--pq-accent)] shadow-sm'
+                  : 'text-[var(--pq-text-muted)] hover:bg-black/[0.04] dark:hover:bg-white/[0.08]',
+              )}
+            >
+              <LayoutGrid className="h-4 w-4" strokeWidth={1.9} />
+            </button>
+            <button
+              type="button"
+              onClick={() => updateViewMode('list')}
+              aria-pressed={viewMode === 'list'}
+              title={l('列表视图', 'List view')}
+              className={clsx(
+                'flex h-8 w-8 items-center justify-center rounded-lg transition',
+                viewMode === 'list'
+                  ? 'bg-[var(--pq-accent-soft)] text-[var(--pq-accent)] shadow-sm'
+                  : 'text-[var(--pq-text-muted)] hover:bg-black/[0.04] dark:hover:bg-white/[0.08]',
+              )}
+            >
+              <List className="h-4 w-4" strokeWidth={1.9} />
+            </button>
+          </div>
         </div>
 
         <div className="mt-2 text-xs text-[var(--pq-text-muted)]">
@@ -508,7 +567,13 @@ export default function LiteraturePaperList({
             </div>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div
+            className={clsx(
+              viewMode === 'grid'
+                ? 'grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4'
+                : 'space-y-2',
+            )}
+          >
             {papers.map((paper) => {
               const active = selectedPaper?.id === paper.id;
               const pdfPath = paperPdfPath(paper, storageDir);
@@ -520,6 +585,108 @@ export default function LiteraturePaperList({
               const mineruParsed = status?.mineruParsed ?? false;
               const overviewGenerated =
                 status?.overviewGenerated ?? Boolean(paper.aiSummary?.trim());
+
+              if (viewMode === 'grid') {
+                return (
+                  <div key={paper.id} className="relative min-w-0">
+                    {showBeforeIndicator ? (
+                      <div className="pointer-events-none absolute -top-2 left-3 right-3 z-10 h-0.5 rounded-full bg-[#2f7f85]" />
+                    ) : null}
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      data-paper-row-id={paper.id}
+                      draggable={false}
+                      onPointerDown={(event) => handleCategoryPointerDown(event, paper)}
+                      onPointerMove={handleCategoryPointerMove}
+                      onPointerUp={handleCategoryPointerUp}
+                      onPointerCancel={resetCategoryDrag}
+                      onDragStart={(event) => {
+                        setDraggingPaperId(paper.id);
+                        onPaperDragStart(event, paper);
+                      }}
+                      onDragOver={(event) => handlePaperDragOver(event, paper)}
+                      onDragLeave={() => setDropIndicator(null)}
+                      onDragEnd={() => {
+                        setDropIndicator(null);
+                        setDraggingPaperId(null);
+                      }}
+                      onDrop={(event) => handlePaperDrop(event, paper)}
+                      onContextMenu={(event) => onPaperContextMenu(event, paper)}
+                      onClick={() => {
+                        if (suppressClickPaperId !== paper.id) onSelectPaper(paper.id);
+                      }}
+                      onDoubleClick={() => onOpenPaper(paper)}
+                      onKeyDown={(event) => handleRowKeyDown(event, paper)}
+                      className={clsx(
+                        'group flex h-full min-h-[330px] w-full flex-col overflow-hidden rounded-2xl border bg-white text-left shadow-[0_12px_34px_rgba(15,23,42,0.07)] transition duration-200 dark:bg-white/[0.045]',
+                        active
+                          ? 'border-[var(--pq-accent-border-strong)] ring-2 ring-[var(--pq-accent-ring)]'
+                          : 'border-[var(--pq-border)] hover:-translate-y-0.5 hover:border-[var(--pq-accent-border)] hover:shadow-[0_18px_44px_rgba(15,23,42,0.12)]',
+                        sortDraggingPaperId === paper.id && 'opacity-60',
+                        categoryDraggingPaperId === paper.id && 'opacity-70',
+                      )}
+                    >
+                      <div className="relative h-40 shrink-0 overflow-hidden">
+                        <PaperPdfCover pdfPath={pdfPath} revision={String(paper.updatedAt)} />
+                        <span
+                          data-paper-sort-handle
+                          title={manualSortingEnabled ? l('拖拽排序', 'Drag to reorder') : l('切换到手动排序后可拖拽排序', 'Switch to manual order to drag-sort')}
+                          onPointerDown={(event) => handleSortPointerDown(event, paper)}
+                          onPointerMove={handleSortPointerMove}
+                          onPointerUp={handleSortPointerUp}
+                          onPointerCancel={resetSortDrag}
+                          className={clsx(
+                            'absolute left-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-white/85 text-slate-500 shadow-sm backdrop-blur transition dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-300',
+                            manualSortingEnabled ? 'cursor-grab hover:text-[var(--pq-accent)]' : 'cursor-not-allowed opacity-55',
+                          )}
+                        >
+                          <GripVertical className="h-4 w-4" strokeWidth={1.9} />
+                        </span>
+                        {paper.isFavorite ? (
+                          <span className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-white/85 text-amber-500 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/70">
+                            <Star className="h-4 w-4" fill="currentColor" strokeWidth={1.8} />
+                          </span>
+                        ) : null}
+                      </div>
+
+                      <div className="flex min-h-0 flex-1 flex-col px-4 pb-4 pt-3.5">
+                        <div className="line-clamp-2 text-[15px] font-semibold leading-5 text-[var(--pq-text)]">
+                          {paper.title}
+                        </div>
+                        <div className="mt-2 line-clamp-1 text-xs text-[var(--pq-text-muted)]">
+                          {paperAuthors(paper, locale)}
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          <span className={clsx(
+                            'rounded-full border px-2 py-0.5 text-[10px] font-semibold',
+                            mineruParsed
+                              ? 'border-emerald-300/55 bg-emerald-50 text-emerald-700 dark:border-emerald-300/20 dark:bg-emerald-300/10 dark:text-emerald-100'
+                              : 'border-amber-300/55 bg-amber-50 text-amber-700 dark:border-amber-300/20 dark:bg-amber-300/10 dark:text-amber-100',
+                          )}>
+                            {mineruParsed ? l('已解析', 'Parsed') : l('待解析', 'To Parse')}
+                          </span>
+                          <span className={clsx(
+                            'rounded-full border px-2 py-0.5 text-[10px] font-semibold',
+                            overviewGenerated
+                              ? 'border-sky-300/55 bg-sky-50 text-sky-700 dark:border-sky-300/20 dark:bg-sky-300/10 dark:text-sky-100'
+                              : 'border-slate-300 bg-slate-100 text-slate-500 dark:border-white/10 dark:bg-white/[0.06] dark:text-[#a0a0a0]',
+                          )}>
+                            {overviewGenerated ? l('有概览', 'Overview') : l('无概览', 'No Overview')}
+                          </span>
+                        </div>
+                        <div className="mt-auto flex items-center justify-between border-t border-[var(--pq-border-soft)] pt-3 text-[11px] text-[var(--pq-text-faint)]">
+                          <span>{paper.year ?? 'n.d.'}</span>
+                          <span>{new Date(paper.importedAt).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                    {showAfterIndicator ? (
+                      <div className="pointer-events-none absolute -bottom-2 left-3 right-3 z-10 h-0.5 rounded-full bg-[#2f7f85]" />
+                    ) : null}
+                  </div>
+                );
+              }
 
               return (
                 <div key={paper.id} className="relative">
@@ -681,4 +848,3 @@ export default function LiteraturePaperList({
     </section>
   );
 }
-

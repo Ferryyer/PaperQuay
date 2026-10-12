@@ -4,6 +4,8 @@
   English | <a href="./README.zh-CN.md">Chinese</a>
 </p>
 
+> **Personal fork of [WangQrkkk/PaperQuay](https://github.com/WangQrkkk/PaperQuay).** This branch adds keyless MinerU Agent lightweight parsing: signed PDF upload, asynchronous status polling, Markdown download and local caching, with the result connected to structured reading and full-text translation. It also adds a cover-based library grid and list view. The upstream token-based precision parser remains available. MinerU's lightweight service limits files to 10 MB and 20 pages, returns Markdown without PDF region coordinates, and may rate-limit requests. AI translation still requires a separately configured model API.
+
 <p align="center">
   <strong>An open-source AI paper workspace for PDF reading, translation, structured overviews, inline notes, Zotero import, Agent workflows, and local RAG.</strong>
 </p>
