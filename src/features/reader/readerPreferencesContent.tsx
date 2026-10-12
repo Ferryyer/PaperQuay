@@ -620,13 +620,22 @@ export function ReaderPreferencesContent({
 
       {activeSection === 'mineru' ? (
         <>
+          <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-sm leading-6 text-indigo-900 dark:border-indigo-400/30 dark:bg-indigo-400/10 dark:text-indigo-200">
+            <p className="font-semibold">{mineruApiToken.trim()
+              ? l('当前模式：精准解析', 'Current mode: Precision parsing')
+              : l('当前模式：轻量解析 · 无需 Key', 'Current mode: Lightweight · No key needed')}</p>
+            <p className="mt-1">{l(
+              'Token 留空即可使用轻量解析。回到论文点击“MinerU 解析”，完成后可翻译全文。轻量结果为 Markdown，不包含精确的 PDF 区域坐标。',
+              'Leave the token empty for lightweight parsing. Open a paper and choose MinerU Parse, then translate it. Lightweight output is Markdown without precise PDF region coordinates.',
+            )}</p>
+          </div>
           <SettingsField
-            label="MinerU API Token"
+            label={l('MinerU API Token（可选）', 'MinerU API Token (optional)')}
             description={
               <span>
                 {l(
-                  '配置后可将本地 PDF 发送给 MinerU 并生成结构化 JSON。可前往 ',
-                  'Configure this to send local PDFs to MinerU and generate structured JSON. Visit ',
+                  '填写 Token 后切换为精准解析，生成包含版面坐标的 JSON。两种模式都会上传 PDF 到解析服务。可前往 ',
+                  'Adding a token switches to precision parsing with PDF coordinates. Both modes upload PDFs to the parsing service. Visit ',
                 )}
                 <button
                   type="button"
@@ -643,21 +652,21 @@ export function ReaderPreferencesContent({
               value={mineruApiToken}
               onChange={(event) => onMineruApiTokenChange(event.target.value)}
               type="password"
-              placeholder={l('输入 MinerU API Token', 'Enter MinerU API Token')}
+              placeholder={l('留空使用轻量免 Key 模式', 'Leave empty for keyless lightweight parsing')}
             />
           </SettingsField>
 
           <SettingsField
             label={l('MinerU API Base URL', 'MinerU API Base URL')}
             description={l(
-              '留空时使用官方地址 https://mineru.net/api/v4；本地部署 MinerU 时填写兼容的 API 根地址。',
-              'Leave empty to use the official https://mineru.net/api/v4 endpoint. For a local MinerU deployment, enter the compatible API root URL.',
+              '建议留空，按模式自动选择官方地址。自定义服务需兼容当前模式：轻量 /api/v1/agent，精准 /api/v4。',
+              'Leave empty to select the official endpoint for the current mode. Custom services must match: lightweight /api/v1/agent, precision /api/v4.',
             )}
           >
             <SettingsInput
               value={settings.mineruApiBaseUrl}
               onChange={(event) => onSettingChange('mineruApiBaseUrl', event.target.value)}
-              placeholder="https://mineru.net/api/v4"
+              placeholder={mineruApiToken.trim() ? 'https://mineru.net/api/v4' : 'https://mineru.net/api/v1/agent'}
             />
           </SettingsField>
 

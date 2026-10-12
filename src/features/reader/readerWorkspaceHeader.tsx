@@ -74,6 +74,7 @@ function HeaderStageTabs({
           type="button"
           onClick={() => onStageChange(tab.key)}
           title={tab.label}
+          aria-pressed={workspaceStage === tab.key}
           className={cn(
             'inline-flex h-9 min-w-9 items-center justify-center gap-2 rounded-[14px] px-2 text-sm font-medium transition-all duration-200 xl:px-3',
             workspaceStage === tab.key
@@ -82,7 +83,7 @@ function HeaderStageTabs({
           )}
         >
           {tab.icon}
-          <span className="hidden xl:inline">{tab.label}</span>
+          <span>{tab.label}</span>
         </button>
       ))}
     </div>
@@ -115,6 +116,7 @@ function HeaderReadingModeTabs({
             type="button"
             onClick={() => onReadingViewModeChange(mode.key)}
             title={mode.label}
+            aria-pressed={readingViewMode === mode.key}
             className={cn(
               'inline-flex h-9 min-w-9 items-center justify-center gap-2 rounded-[14px] px-2 text-sm font-medium transition-all duration-200 2xl:px-3',
               readingViewMode === mode.key
@@ -123,7 +125,7 @@ function HeaderReadingModeTabs({
             )}
           >
             {modeIcon}
-            <span className="hidden xl:inline 2xl:hidden">{shortLabel}</span>
+            <span className="2xl:hidden">{shortLabel}</span>
             <span className="hidden 2xl:inline">{mode.label}</span>
           </button>
         );
@@ -398,15 +400,16 @@ export function ReaderWorkspaceHeader({
     >
       <div
         className={cn(
-          'grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] gap-3',
+          'flex min-w-0 flex-wrap gap-3',
           headerCollapsed ? 'items-center' : 'items-start',
         )}
       >
-        <div className="min-w-0">
+        <div className="min-w-0 flex-[1_1_240px]">
           <div className="truncate text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-[var(--pq-text-faint)]">
             {sourceLabel}
           </div>
           <div
+            title={documentTitle}
             className={cn(
               'truncate font-semibold tracking-tight text-slate-950 transition-all duration-200 dark:text-[var(--pq-text)]',
               headerCollapsed ? 'mt-0.5 max-w-[720px] text-base' : 'mt-1 text-lg 2xl:text-[22px]',
@@ -454,7 +457,7 @@ export function ReaderWorkspaceHeader({
               type="button"
               onClick={onEnterImmersive}
               className="inline-flex h-10 min-w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white px-2 text-[0px] font-medium text-slate-700 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 dark:border-white/10 dark:bg-[var(--pq-surface-1)] dark:text-[var(--pq-text-muted)] dark:hover:border-white/15 dark:hover:bg-[var(--pq-surface-2)] 2xl:px-3 2xl:text-sm"
-              title={l('沉浸阅读', 'Immersive Reading')}
+              title={l('沉浸阅读（⌘ / Ctrl + Shift + F）', 'Immersive Reading (⌘ / Ctrl + Shift + F)')}
               aria-label={l('沉浸阅读', 'Immersive Reading')}
             >
               <Maximize2 className="mr-0 h-4 w-4 2xl:mr-2" strokeWidth={1.8} />

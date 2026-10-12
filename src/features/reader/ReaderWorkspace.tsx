@@ -153,6 +153,7 @@ interface ReaderWorkspaceProps {
   onClearSelectedExcerpt: () => void;
   onPdfAnnotationSaveSuccess: (path: string) => void;
   aiConfigured: boolean;
+  translationConfigured: boolean;
   assistantDetached: boolean;
   leftSidebarCollapsed: boolean;
   onToggleLeftSidebar: () => void;
@@ -366,6 +367,7 @@ function ReadingStage(props: ReaderWorkspaceProps & { immersiveReading: boolean 
                 role="separator"
                 aria-orientation="vertical"
                 aria-label={l('调整阅读分栏', 'Resize reading split')}
+                title={l('拖动调整栏宽；双击恢复默认比例', 'Drag to resize; double-click to reset')}
                 onDoubleClick={onResetLayout}
                 onPointerDown={(event) => {
                   event.preventDefault();
@@ -377,7 +379,28 @@ function ReadingStage(props: ReaderWorkspaceProps & { immersiveReading: boolean 
                 <div className="absolute left-1/2 top-1/2 h-14 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-slate-300 transition-all duration-200 group-hover:w-1.5 group-hover:bg-indigo-400" />
               </div>
 
-              <section data-tour="block-translation" className="min-h-0 min-w-0 flex-1 bg-[#f7f9fc] transition-all duration-300">
+              <section data-tour="block-translation" aria-label={l('译文与结构化正文', 'Translation and structured text')} className="flex min-h-0 min-w-0 flex-1 flex-col bg-[#f7f9fc] dark:bg-[var(--pq-bg-primary)]">
+                <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-3 py-2 text-xs text-slate-600 dark:border-white/10 dark:text-[var(--pq-text-muted)]">
+                  <span>{translating
+                    ? l(`翻译中 ${translationProgressCompleted}/${translationProgressTotal} · 可边译边读`, `Translating ${translationProgressCompleted}/${translationProgressTotal} · Read as it completes`)
+                    : blocks.length > 0
+                      ? l(`译文已缓存 ${translatedCount} 段`, `${translatedCount} translated blocks cached`)
+                      : l('准备译文后，可在此对照阅读', 'Prepare a translation to read alongside the PDF')}</span>
+                  <div className="flex items-center gap-3">
+                    <button type="button" onClick={onResetLayout} className="hover:text-indigo-600 dark:hover:text-indigo-300" title={l('恢复默认分栏比例', 'Reset column widths')}>{l('重置栏宽', 'Reset widths')}</button>
+                    <button type="button"
+                      disabled={translating ? translationCancelling : props.loading}
+                      onClick={translating ? props.onCancelTranslateDocument : blocks.length === 0 ? props.onCloudParse : !props.translationConfigured ? props.onOpenPreferences : props.onTranslateDocument}
+                      className="rounded-lg bg-indigo-600 px-3 py-1.5 font-medium text-white hover:bg-indigo-500 disabled:opacity-50">
+                      {translating ? translationCancelling ? l('取消中…', 'Cancelling…') : l('取消翻译', 'Cancel translation')
+                        : props.loading ? l('处理中…', 'Processing…')
+                        : blocks.length === 0 ? l('解析论文', 'Parse paper')
+                        : !props.translationConfigured ? l('配置翻译模型', 'Configure translation')
+                        : translatedCount > 0 ? l('补全 / 重试翻译', 'Complete / retry translation') : l('翻译全文', 'Translate paper')}
+                    </button>
+                  </div>
+                </div>
+                <div className="min-h-0 flex-1">
                 <BlockViewer
                   blocks={blocks}
                   mineruPath={mineruPath}
@@ -399,6 +422,7 @@ function ReadingStage(props: ReaderWorkspaceProps & { immersiveReading: boolean 
                   onTranslationDisplayModeChange={props.onTranslationDisplayModeChange}
                   onTextSelect={handleBlockTextSelect}
                 />
+                </div>
               </section>
             </>
           ) : (
@@ -496,11 +520,19 @@ function ReaderWorkspace(props: ReaderWorkspaceProps) {
   }, [workspaceStage]);
 
   useEffect(() => {
-    if (!active || !immersiveReading) {
+    if (!active) {
       return undefined;
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.isComposing) return;
+      const target = event.target;
+      if (target instanceof Element && target.closest('input, textarea, select, [contenteditable="true"], [role="dialog"]')) return;
+      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'f' && workspaceStage === 'reading') {
+        event.preventDefault();
+        setImmersiveReading((current) => !current);
+        return;
+      }
       if (event.key === 'Escape') {
         setImmersiveReading(false);
       }
@@ -508,7 +540,7 @@ function ReaderWorkspace(props: ReaderWorkspaceProps) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [active, immersiveReading]);
+  }, [active, workspaceStage]);
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-[linear-gradient(180deg,#f8fafc,#f1f5f9)] dark:bg-[linear-gradient(180deg,#0f1a2e,#0c1525)]">
@@ -540,7 +572,7 @@ function ReaderWorkspace(props: ReaderWorkspaceProps) {
       ) : null}
 
       {error ? (
-        <div className="border-b border-rose-200 bg-rose-50 px-6 py-3 text-sm text-rose-600 dark:border-rose-400/30 dark:bg-rose-400/10 dark:text-rose-400">
+        <div role="alert" className="max-h-32 overflow-auto break-words border-b border-rose-200 bg-rose-50 px-6 py-3 text-sm text-rose-600 dark:border-rose-400/30 dark:bg-rose-400/10 dark:text-rose-400">
           {error}
         </div>
       ) : null}
@@ -567,6 +599,8 @@ function ReaderWorkspace(props: ReaderWorkspaceProps) {
           onTranslateDocument={props.onTranslateDocument}
           onCancelTranslateDocument={props.onCancelTranslateDocument}
           aiConfigured={props.aiConfigured}
+          translationConfigured={props.translationConfigured}
+          onOpenPreferences={props.onOpenPreferences}
         />
       ) : (
         <ReadingStage {...props} immersiveReading={immersiveReading} />
@@ -594,12 +628,12 @@ function ReaderWorkspace(props: ReaderWorkspaceProps) {
       ) : null}
 
       <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200/80 bg-white/70 px-6 py-2.5 text-xs text-slate-500 backdrop-blur-xl dark:border-white/10 dark:bg-[var(--pq-bg-primary)] dark:text-[var(--pq-text-faint)]">
-        <div className="min-w-0 truncate">
+        <div role="status" aria-live="polite" className="min-w-0 truncate" title={statusMessage}>
           {loading || translating ? statusMessage || l('正在处理中...', 'Processing...') : statusMessage}
         </div>
         <div className="hidden items-center gap-4 lg:flex">
           <span>{activeBlockSummary}</span>
-          <span>{l('单击预览，双击进入阅读', 'Single-click to preview, double-click to read')}</span>
+          <span>{l('⌘ / Ctrl + Shift + F 沉浸阅读 · Esc 退出', '⌘ / Ctrl + Shift + F focus · Esc exit')}</span>
           <span>Ctrl + {l('滚轮缩放', 'Scroll to zoom')}</span>
         </div>
       </footer>
@@ -608,4 +642,3 @@ function ReaderWorkspace(props: ReaderWorkspaceProps) {
 }
 
 export default ReaderWorkspace;
-

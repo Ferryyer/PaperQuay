@@ -1,5 +1,8 @@
 import { invoke } from '../platform/electron/core';
+import { listen } from '../platform/electron/event';
 import type { PdfSource } from '../types/reader';
+
+const MINERU_STREAM_EVENT = 'paperquay://mineru-stream';
 
 export interface AppDefaultPaths {
   executableDir: string;
@@ -331,5 +334,54 @@ export async function runMineruCloudParse(
     return await invoke<MineruCloudParseResult>('run_mineru_cloud_parse', { options });
   } catch (error) {
     throw new Error(toErrorMessage(error, '调用 MinerU 云端解析失败'));
+  }
+}
+
+export interface MineruLightParseOptions {
+  apiToken?: string;
+  apiBaseUrl?: string;
+  pdfPath: string;
+  extractDir?: string;
+  language?: string;
+  enableFormula?: boolean;
+  enableTable?: boolean;
+  isOcr?: boolean;
+  timeoutSecs?: number;
+  pollIntervalSecs?: number;
+}
+
+export interface MineruStreamStatus {
+  state: string;
+  message: string;
+}
+
+export async function runMineruLightParse(
+  options: MineruLightParseOptions,
+  onStatus?: (status: MineruStreamStatus) => void,
+): Promise<MineruCloudParseResult> {
+  const requestId = crypto.randomUUID();
+  const unlisten = onStatus
+    ? await listen<{ requestId: string; kind: string; state?: string; message?: string }>(
+        MINERU_STREAM_EVENT,
+        (event) => {
+          const payload = event.payload;
+
+          if (!payload || payload.requestId !== requestId) {
+            return;
+          }
+
+          if (payload.kind === 'status' && payload.state) {
+            onStatus({ state: payload.state, message: payload.message ?? '' });
+          }
+        },
+      )
+    : () => {};
+
+  try {
+    return await invoke<MineruCloudParseResult>('run_mineru_light_parse', { requestId, options });
+  } catch (error) {
+    throw new Error(toErrorMessage(error, '调用 MinerU 轻量解析失败'));
+  } finally {
+    unlisten();
   }
 }

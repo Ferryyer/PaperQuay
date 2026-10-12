@@ -572,8 +572,8 @@ function BlockViewer({
   if (renderableBlocks.length === 0) {
     return (
       <EmptyState
-        title={l('Waiting for Structured Content', 'Waiting for Structured Content')}
-        description={l('After opening or loading a MinerU JSON file, this panel will show the paper block by block and stay geometrically linked to the PDF on the left.', 'After opening or loading a MinerU JSON file, this panel will show the paper block by block and stay geometrically linked to the PDF on the left.',
+        title={l('译文准备区', 'Translation workspace')}
+        description={l('先点击上方“解析论文”，完成后点击“翻译全文”。你可以同时阅读左侧 PDF；已有译文会自动保留。', 'Choose Parse paper above, then Translate paper. You can read the PDF on the left while processing; completed translations are preserved.',
         )}
       />
     );
@@ -590,7 +590,7 @@ function BlockViewer({
         <div className="mx-auto flex w-fit max-w-full flex-wrap items-center gap-2 rounded-2xl border border-white/80 bg-white/72 px-3 py-2 shadow-[0_10px_22px_rgba(15,23,42,0.05)] backdrop-blur-xl dark:border-white/10 dark:bg-[var(--pq-surface-1)] dark:shadow-none">
           <div className="flex items-center gap-2 rounded-full bg-slate-50 px-2.5 py-1 text-sm text-slate-600 dark:bg-[var(--pq-surface-2)] dark:text-[var(--pq-text-muted)]">
             <SearchCode className="h-4 w-4 text-slate-400 dark:text-[var(--pq-text-faint)]" strokeWidth={1.8} />
-            <span className="hidden sm:inline">{l('Structured Reading', 'Structured Reading')}</span>
+            <span className="hidden sm:inline">{l('对照阅读', 'Parallel reading')}</span>
           </div>
 
           <span className="pq-badge-neutral rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500">
@@ -609,6 +609,8 @@ function BlockViewer({
                   key={option.mode}
                   type="button"
                   disabled={option.disabled}
+                  aria-pressed={selected}
+                  title={option.disabled ? l('生成译文后可切换此模式', 'Available after translations are generated') : option.label}
                   onClick={() => onTranslationDisplayModeChange?.(option.mode)}
                   className={cn(
                     'rounded-full px-3 py-1.5 font-medium transition-all duration-200',
@@ -649,8 +651,8 @@ function BlockViewer({
 
           <span className="hidden rounded-full bg-slate-50 px-3 py-1 text-xs text-slate-400 lg:inline dark:bg-[var(--pq-surface-2)] dark:text-[var(--pq-text-faint)]">
             {l(
-              '点击块可反向定位到 PDF 几何区域',
-              'Click a block to jump back to the PDF geometry region',
+              '有版面坐标的段落可点击定位原文',
+              'Click paragraphs with layout coordinates to locate the original',
             )}
           </span>
         </div>
@@ -707,4 +709,3 @@ function BlockViewer({
 }
 
 export default memo(BlockViewer);
-

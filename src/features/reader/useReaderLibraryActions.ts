@@ -42,7 +42,7 @@ import { isPaperPipelineBusy } from './paperTaskState';
 import {
   writeLibraryTranslationCache,
 } from './readerLibraryPreview';
-import { runMineruCloudParseWithOcrFallback } from './mineruOcrFallback';
+import { mineruStateMessage, runMineruParse } from './mineruOcrFallback';
 import {
   mergeReaderTranslations,
   sanitizeTranslationErrorMessage,
@@ -268,12 +268,6 @@ export function useReaderLibraryActions({
           return;
         }
 
-        if (!mineruApiToken.trim()) {
-          setPreferredPreferencesSection('mineru');
-          setPreferencesOpen(true);
-          throw new Error(l('缺少 MinerU API Token', 'MinerU API Token is missing'));
-        }
-
         updateLibraryPreviewOperation(
           item,
           createPaperTaskState(
@@ -299,7 +293,7 @@ export function useReaderLibraryActions({
         const cachePaths = settings.mineruCacheDir.trim()
           ? buildMineruCachePaths(settings.mineruCacheDir.trim(), item)
           : null;
-        const parseResult = await runMineruCloudParseWithOcrFallback({
+        const parseResult = await runMineruParse({
           apiToken: mineruApiToken.trim(),
           apiBaseUrl: settings.mineruApiBaseUrl,
           pdfPath,
@@ -327,11 +321,27 @@ export function useReaderLibraryActions({
               statusMessage: l('正在切换 OCR 模式重试...', 'Retrying with OCR mode...'),
             },
           );
+        }, (status) => {
+          const message = mineruStateMessage(status.state, l);
+          setStatusMessage(message);
+          updateLibraryPreviewOperation(
+            item,
+            createPaperTaskState('mineru', 'running', message, 35, 100),
+            {
+              loading: true,
+              error: '',
+              statusMessage: message,
+            },
+          );
         });
-        const { result, jsonText, usedOcr } = parseResult;
+        const { result, text } = parseResult;
 
-        if (!jsonText?.trim()) {
-          throw new Error(l('MinerU 未返回可用的 JSON 结果', 'MinerU did not return a usable JSON result'));
+        if (!text?.trim()) {
+          throw new Error(
+            parseResult.mode === 'lightweight'
+              ? l('MinerU 轻量解析未返回可用的 Markdown 结果', 'MinerU lightweight parsing returned no usable Markdown result')
+              : l('MinerU 未返回可用的 JSON 结果', 'MinerU did not return a usable JSON result'),
+          );
         }
 
         const savedPaths = await saveLibraryMineruParseCache({
@@ -349,22 +359,27 @@ export function useReaderLibraryActions({
         const resolvedJsonPath =
           result.contentJsonPath ||
           result.middleJsonPath ||
+          result.markdownPath ||
           (savedPaths
             ? result.contentJsonText?.trim()
               ? savedPaths.contentJsonPath
-              : savedPaths.middleJsonPath
-            : 'content_list_v2.json');
+              : result.middleJsonText?.trim()
+                ? savedPaths.middleJsonPath
+                : savedPaths.markdownPath
+            : 'full.md');
 
         const parsedState = syncLibraryParsedState(
           item,
-          jsonText,
+          text,
           resolvedJsonPath,
           savedPaths
             ? l(
                 `已完成 MinerU 解析并写入缓存：${savedPaths.directory}`,
                 `MinerU parsing finished and was cached in: ${savedPaths.directory}`,
               )
-            : l('已完成 MinerU 解析', 'MinerU parsing finished'),
+            : parseResult.mode === 'lightweight'
+              ? l('已完成 MinerU 轻量解析', 'MinerU lightweight parsing finished')
+              : l('已完成 MinerU 解析', 'MinerU parsing finished'),
         );
         updateLibraryPreviewOperation(
           item,

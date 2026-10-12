@@ -6,6 +6,7 @@ const { createParser } = require('eventsource-parser');
 
 const QA_STREAM_EVENT = 'paperquay://qa-stream';
 const AGENT_STREAM_EVENT = 'paperquay://agent-stream';
+const MINERU_STREAM_EVENT = 'paperquay://mineru-stream';
 const MINERU_API_BASE = 'https://mineru.net/api/v4';
 
 function now() {
@@ -1037,6 +1038,7 @@ async function readZipWithAdm(zipBytes, extractDir) {
 module.exports = {
   AGENT_STREAM_EVENT,
   MINERU_API_BASE,
+  MINERU_STREAM_EVENT,
   QA_STREAM_EVENT,
   chatEndpoint,
   cleanString,

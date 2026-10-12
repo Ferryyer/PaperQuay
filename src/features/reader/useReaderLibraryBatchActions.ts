@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { runMineruCloudParse } from '../../services/desktop';
+import { mineruStateMessage, runMineruParse } from './mineruOcrFallback';
 import { resolveSummaryOutputLanguage } from '../../services/summarySource';
 import { buildMineruCachePaths } from '../../utils/mineruCache';
 import {
@@ -88,15 +88,6 @@ export function useReaderLibraryBatchActions({
       const auto = options?.auto ?? false;
 
       if (batchMineruRunningRef.current) {
-        return;
-      }
-
-      if (!mineruApiToken.trim()) {
-        if (!auto) {
-          setPreferencesOpen(true);
-          setError(l('缺少 MinerU API Token', 'MinerU API Token is missing'));
-          setStatusMessage(l('缺少 MinerU API Token', 'MinerU API Token is missing'));
-        }
         return;
       }
 
@@ -230,7 +221,7 @@ export function useReaderLibraryBatchActions({
               const cachePaths = settings.mineruCacheDir.trim()
                 ? buildMineruCachePaths(settings.mineruCacheDir.trim(), item)
                 : null;
-              const result = await runMineruCloudParse({
+              const parseResult = await runMineruParse({
                 apiToken: mineruApiToken.trim(),
                 apiBaseUrl: settings.mineruApiBaseUrl,
                 pdfPath,
@@ -242,15 +233,28 @@ export function useReaderLibraryBatchActions({
                 isOcr: false,
                 timeoutSecs: 900,
                 pollIntervalSecs: 5,
+              }, undefined, (status) => {
+                const message = mineruStateMessage(status.state, l);
+                if (!auto) {
+                  setStatusMessage(l(
+                    `批量 MinerU 解析中：${currentLabel} · ${message}`,
+                    `Running MinerU batch parsing: ${currentLabel} · ${message}`,
+                  ));
+                }
               });
-              const jsonText = result.contentJsonText ?? result.middleJsonText;
+              const { result, text } = parseResult;
 
-              if (!jsonText?.trim()) {
+              if (!text?.trim()) {
                 throw new Error(
-                  l(
-                    'MinerU 未返回可用的 JSON 结果',
-                    'MinerU did not return a usable JSON result',
-                  ),
+                  parseResult.mode === 'lightweight'
+                    ? l(
+                        'MinerU 轻量解析未返回可用的 Markdown 结果',
+                        'MinerU lightweight parsing returned no usable Markdown result',
+                      )
+                    : l(
+                        'MinerU 未返回可用的 JSON 结果',
+                        'MinerU did not return a usable JSON result',
+                      ),
                 );
               }
 
@@ -270,19 +274,24 @@ export function useReaderLibraryBatchActions({
               const resolvedJsonPath =
                 result.contentJsonPath ||
                 result.middleJsonPath ||
+                result.markdownPath ||
                 (savedPaths
                   ? result.contentJsonText?.trim()
                     ? savedPaths.contentJsonPath
-                    : savedPaths.middleJsonPath
-                  : 'content_list_v2.json');
+                    : result.middleJsonText?.trim()
+                      ? savedPaths.middleJsonPath
+                      : savedPaths.markdownPath
+                  : 'full.md');
               const status = savedPaths
                 ? l(
                     `已完成 MinerU 解析并写入缓存：${savedPaths.directory}`,
                     `MinerU parsing finished and was cached in: ${savedPaths.directory}`,
                   )
-                : l('已完成 MinerU 解析', 'MinerU parsing finished');
+                : parseResult.mode === 'lightweight'
+                  ? l('已完成 MinerU 轻量解析', 'MinerU lightweight parsing finished')
+                  : l('已完成 MinerU 解析', 'MinerU parsing finished');
 
-              syncLibraryParsedState(item, jsonText, resolvedJsonPath, status);
+              syncLibraryParsedState(item, text, resolvedJsonPath, status);
               parsedCount += 1;
               successCount += 1;
             } catch (nextError) {

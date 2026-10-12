@@ -1,7 +1,6 @@
 import {
   Expand,
   ImageIcon,
-  Languages,
   Table2,
 } from 'lucide-react';
 import katex from 'katex';
@@ -435,11 +434,7 @@ function TableContentComponent({
           )}
 
           {showBilingual && translatedText ? (
-            <div className="rounded-[18px] border border-indigo-100 bg-indigo-50/70 px-4 py-3 dark:border-indigo-500/30 dark:bg-indigo-500/10">
-              <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-500">
-                <Languages className="h-3.5 w-3.5" strokeWidth={1.9} />
-                {l('译文', 'Translation')}
-              </div>
+            <div className="mt-2 opacity-80 dark:opacity-90">
               <MarkdownContent markdown={translatedText} scale={scale} />
             </div>
           ) : null}
@@ -486,11 +481,7 @@ function ImageContentComponent({
       />
 
       {showBilingual && translatedText ? (
-        <div className="rounded-[18px] border border-indigo-100 bg-indigo-50/70 px-4 py-3 dark:border-indigo-500/30 dark:bg-indigo-500/10">
-          <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-500">
-            <Languages className="h-3.5 w-3.5" strokeWidth={1.9} />
-            {l('译文', 'Translation')}
-          </div>
+        <div className="mt-2 opacity-80 dark:opacity-90">
           <MarkdownContent markdown={translatedText} scale={scale} />
         </div>
       ) : null}
@@ -698,11 +689,7 @@ function BlockItemComponent({
           )}
 
           {showBilingual && translatedText && block.type !== 'equation' ? (
-            <div className="mt-4 rounded-[18px] border border-indigo-100 bg-indigo-50/70 px-4 py-3 dark:border-white/10 dark:bg-[var(--pq-surface-1)]">
-              <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-500 dark:text-[#b8c2d9]">
-                <Languages className="h-3.5 w-3.5" strokeWidth={1.9} />
-                {l('译文', 'Translation')}
-              </div>
+            <div className="mt-2 opacity-80 dark:opacity-90">
               <MarkdownContent markdown={displayTranslatedMarkdown || ''} scale={scale} />
             </div>
           ) : null}

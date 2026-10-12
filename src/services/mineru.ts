@@ -955,6 +955,26 @@ export function parseMineruMarkdownPages(markdownText: string): MineruPage[] {
   return blocks.length > 0 ? [blocks] : [];
 }
 
+export function parseMineruAnyText(text: string): MineruPage[] {
+  const trimmed = text?.trim() ?? '';
+
+  if (!trimmed) {
+    return [];
+  }
+
+  try {
+    const pages = parseMineruPages(trimmed);
+
+    if (pages.some((page) => page.length > 0)) {
+      return pages;
+    }
+  } catch {
+    // Not a MinerU JSON payload; fall back to Markdown parsing.
+  }
+
+  return parseMineruMarkdownPages(trimmed);
+}
+
 export function flattenMineruPages(pages: MineruPage[]): PositionedMineruBlock[] {
   const blocks = pages.flatMap((page, pageIndex) =>
     page.map((block, blockIndex) => ({

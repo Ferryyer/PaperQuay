@@ -1,15 +1,30 @@
 import {
   runMineruCloudParse,
+  runMineruLightParse,
   type MineruCloudParseOptions,
   type MineruCloudParseResult,
+  type MineruStreamStatus,
 } from '../../services/desktop';
-import { parseMineruPages } from '../../services/mineru';
+import {
+  parseMineruMarkdownPages,
+  parseMineruPages,
+} from '../../services/mineru';
+import type { MineruPage } from '../../types/reader';
 
 export interface MineruParseWithFallbackResult {
   result: MineruCloudParseResult;
   jsonText: string;
   blockCount: number;
   usedOcr: boolean;
+}
+
+export interface MineruParseRunResult {
+  result: MineruCloudParseResult;
+  text: string;
+  pages: MineruPage[];
+  blockCount: number;
+  usedOcr: boolean;
+  mode: 'precise' | 'lightweight';
 }
 
 function getMineruJsonText(result: MineruCloudParseResult): string {
@@ -78,4 +93,87 @@ export async function runMineruCloudParseWithOcrFallback(
     onRetry?.();
     return runAttempt(options, true);
   }
+}
+
+function normalizeMineruResult(result: MineruCloudParseResult): {
+  text: string;
+  pages: MineruPage[];
+} {
+  const jsonText = getMineruJsonText(result);
+
+  if (jsonText.trim()) {
+    try {
+      const pages = parseMineruPages(jsonText);
+
+      if (pages.some((page) => page.length > 0)) {
+        return { text: jsonText, pages };
+      }
+    } catch {
+      // Not a usable JSON payload; fall through to Markdown.
+    }
+  }
+
+  const markdownText = result.markdownText ?? '';
+
+  return {
+    text: markdownText,
+    pages: parseMineruMarkdownPages(markdownText),
+  };
+}
+
+export function mineruStateMessage(
+  state: string,
+  l: (zh: string, en: string) => string,
+): string {
+  switch (state) {
+    case 'submitting':
+      return l('正在提交解析任务…', 'Submitting parse task...');
+    case 'uploading':
+      return l('正在上传 PDF…', 'Uploading PDF...');
+    case 'waiting-file':
+      return l('等待文件上传…', 'Waiting for file upload...');
+    case 'pending':
+      return l('排队中，等待解析…', 'Queued, waiting to parse...');
+    case 'running':
+      return l('正在解析…', 'Parsing...');
+    case 'converting':
+      return l('正在转换格式…', 'Converting format...');
+    case 'done':
+      return l('解析完成', 'Parsing finished');
+    default:
+      return l('处理中…', 'Processing...');
+  }
+}
+
+export async function runMineruParse(
+  options: MineruCloudParseOptions,
+  onRetry?: () => void,
+  onStatus?: (status: MineruStreamStatus) => void,
+): Promise<MineruParseRunResult> {
+  const hasToken = Boolean(options.apiToken?.trim());
+
+  if (!hasToken) {
+    const result = await runMineruLightParse(options, onStatus);
+    const { text, pages } = normalizeMineruResult(result);
+
+    return {
+      result,
+      text,
+      pages,
+      blockCount: pages.reduce((count, page) => count + page.length, 0),
+      usedOcr: false,
+      mode: 'lightweight',
+    };
+  }
+
+  const precise = await runMineruCloudParseWithOcrFallback(options, onRetry);
+
+  return {
+    result: precise.result,
+    text: precise.jsonText,
+    pages: parseMineruPages(precise.jsonText),
+    blockCount: precise.blockCount,
+    usedOcr: precise.usedOcr,
+    mode: 'precise',
+  };
 }

@@ -25,6 +25,8 @@ export interface ReaderWorkspaceOverviewProps {
   onTranslateDocument: () => void;
   onCancelTranslateDocument: () => void;
   aiConfigured: boolean;
+  translationConfigured: boolean;
+  onOpenPreferences: () => void;
 }
 
 function InlineProgressBar({
@@ -83,6 +85,8 @@ export function ReaderWorkspaceOverview({
   onTranslateDocument,
   onCancelTranslateDocument,
   aiConfigured,
+  translationConfigured,
+  onOpenPreferences,
 }: ReaderWorkspaceOverviewProps) {
   const l = useLocaleText();
   const sourceLabel =
@@ -126,7 +130,7 @@ export function ReaderWorkspaceOverview({
                   type="button"
                   data-tour="overview-mineru-parse"
                   onClick={onCloudParse}
-                  disabled={loading}
+                  disabled={loading || translating}
                   className="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 disabled:opacity-60"
                 >
                   <Sparkles className="mr-2 h-4 w-4" strokeWidth={1.8} />
@@ -136,7 +140,8 @@ export function ReaderWorkspaceOverview({
                   type="button"
                   data-tour="overview-translate-document"
                   onClick={translating ? onCancelTranslateDocument : onTranslateDocument}
-                  disabled={translating ? translationCancelling : loading || blocks.length === 0}
+                  disabled={translating ? translationCancelling : loading || blocks.length === 0 || !translationConfigured}
+                  title={!translationConfigured ? l('请先在设置中配置翻译模型', 'Configure a translation model in Settings first') : blocks.length === 0 ? l('请先解析论文', 'Parse the paper first') : undefined}
                   className={[
                     'inline-flex items-center rounded-2xl border px-4 py-2.5 text-sm font-medium transition-all duration-200 disabled:opacity-60',
                     translating
@@ -158,6 +163,16 @@ export function ReaderWorkspaceOverview({
               </div>
             </div>
           </section>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-600 dark:border-white/10 dark:bg-[var(--pq-surface-1)] dark:text-[var(--pq-text-muted)]">
+            <p className="font-medium text-slate-900 dark:text-[var(--pq-text)]">{l('阅读准备：解析 → 翻译 → 对照阅读', 'Reading preparation: Parse → Translate → Read side by side')}</p>
+            <p className="mt-1">{loading ? l('正在准备论文，请留意底部进度。你也可以先进入 PDF 阅读。', 'Preparing your paper; see the status below. You can start reading the PDF now.')
+              : blocks.length === 0 ? l('PDF 可以直接阅读。需要全文译文时，先点击“MinerU 解析”；轻量模式无需 Token。', 'Read the PDF immediately. For a full translation, choose MinerU Parse first; lightweight mode needs no token.')
+              : !translationConfigured ? l('解析结果已就绪。配置翻译模型后，即可生成全文译文。', 'Parsed content is ready. Configure a translation model to translate the paper.')
+              : translating ? l('正在翻译，你可以进入阅读，查看已经完成的译文。取消会保留已完成的部分。', 'Translation is running. Start reading completed translations now; cancelling keeps completed work.')
+              : l('解析结果已就绪。点击“翻译全文”生成或补全译文，也可以直接进入双栏阅读。', 'Parsed content is ready. Translate the document to generate or complete translations, or start dual-pane reading.')}</p>
+            {!translationConfigured ? <button type="button" onClick={onOpenPreferences} className="mt-2 font-medium text-indigo-600 underline underline-offset-4 dark:text-indigo-300">{l('配置 AI 模型', 'Configure AI models')}</button> : null}
+          </div>
 
           {translating ? (
             <InlineProgressBar
@@ -213,10 +228,10 @@ export function ReaderWorkspaceOverview({
             <div className="rounded-[20px] border border-slate-200/80 bg-white px-4 py-4">
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                 <FileJson className="h-4 w-4" strokeWidth={1.8} />
-                MinerU JSON
+                {l('解析结果 · JSON / Markdown', 'Parsed content · JSON / Markdown')}
               </div>
               <div className="mt-2 break-words text-sm leading-6 text-slate-700">
-                {currentJsonName || l('未加载 JSON', 'No JSON Loaded')}
+                {currentJsonName || l('尚未解析', 'Not parsed yet')}
               </div>
             </div>
 
@@ -229,8 +244,8 @@ export function ReaderWorkspaceOverview({
                       `Detected ${blocks.length} structured blocks. You can switch to Dual Pane reading immediately.`,
                     )
                   : l(
-                      '当前还没有结构块，请先加载 JSON 或执行 MinerU 解析。',
-                      'No structured blocks are available yet. Load a JSON file or run MinerU parsing first.',
+                      '尚未解析。可直接阅读 PDF；如需全文翻译，请先执行 MinerU 解析。',
+                      'Not parsed yet. Read the PDF now, or run MinerU parsing for full translation.',
                     )}
             </div>
 

@@ -29,6 +29,7 @@ import { getFileNameFromPath } from '../../utils/text';
 import { loadPaperHistory } from '../../utils/paperHistory';
 import {
   flattenMineruPages,
+  parseMineruAnyText,
   parseMineruPages,
 } from '../../services/mineru';
 import {
@@ -455,7 +456,7 @@ export function useReaderLibraryPreview({
       jsonPath: string,
       status: string,
     ) => {
-      const pages = parseMineruPages(jsonText);
+      const pages = parseMineruAnyText(jsonText);
       const blocks = flattenMineruPages(pages);
       const currentJsonName = getFileNameFromPath(jsonPath);
       const currentPdfName = item.localPdfPath

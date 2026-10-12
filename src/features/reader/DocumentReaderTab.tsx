@@ -8,7 +8,6 @@ import {
   localPathExists,
   readLocalTextFile,
   readLocalTextFileIfExists,
-  runMineruCloudParse,
   selectChatAttachmentPaths,
   selectLocalMineruJsonPath,
 } from '../../services/desktop';
@@ -24,6 +23,7 @@ import {
   extractTextFromMineruBlock,
   extractTranslatableMarkdownFromMineruBlock,
   flattenMineruPages,
+  parseMineruAnyText,
   parseMineruMarkdownPages,
   parseMineruPages,
   resolveMineruBlockContentSource,
@@ -62,6 +62,7 @@ import {
   buildPaperTaskState as buildLocalizedPaperTaskState,
   isPaperTaskRunning,
 } from './paperTaskState';
+import { mineruStateMessage, runMineruParse } from './mineruOcrFallback';
 import type {
   AssistantPanelKey,
   DocumentChatAttachment,
@@ -1536,18 +1537,11 @@ function DocumentReaderTab({
       return;
     }
 
-    if (!mineruApiToken.trim()) {
-      onOpenPreferences();
-      const message = lRef.current('请先在设置中填写 MinerU API Token', 'Configure the MinerU API token in Settings first');
-      setError(message);
-      setStatusMessage(message);
-      updateLibraryOperation('mineru', 'error', message, 100, 100);
-      return;
-    }
-
     setLoading(true);
     setError('');
-    const runningMessage = lRef.current('正在将 PDF 发送到 MinerU 云端解析…', 'Sending the PDF to MinerU cloud parsing...');
+    const runningMessage = mineruApiToken.trim()
+      ? lRef.current('正在将 PDF 发送到 MinerU 云端解析…', 'Sending the PDF to MinerU cloud parsing...')
+      : lRef.current('正在使用 MinerU 轻量免 Key 模式解析…', 'Running MinerU lightweight keyless parsing...');
     setStatusMessage(runningMessage);
     updateLibraryOperation('mineru', 'running', runningMessage, 20, 100);
 
@@ -1556,7 +1550,7 @@ function DocumentReaderTab({
         currentDocument && settings.mineruCacheDir.trim()
           ? buildMineruCachePaths(settings.mineruCacheDir.trim(), currentDocument)
           : null;
-      const result = await runMineruCloudParse({
+      const parseResult = await runMineruParse({
         apiToken: mineruApiToken.trim(),
         apiBaseUrl: settings.mineruApiBaseUrl,
         pdfPath,
@@ -1568,25 +1562,40 @@ function DocumentReaderTab({
         isOcr: false,
         timeoutSecs: 900,
         pollIntervalSecs: 5,
+      }, undefined, (status) => {
+        const message = mineruStateMessage(status.state, lRef.current);
+        setStatusMessage(message);
+        updateLibraryOperation('mineru', 'running', message, 35, 100);
       });
-      const jsonText = result.contentJsonText ?? result.middleJsonText;
+      const { result, text } = parseResult;
 
-      if (!jsonText) {
+      if (!text?.trim()) {
         throw new Error(
-          lRef.current(
-            'MinerU 解析成功，但未返回可用的 JSON 内容',
-            'MinerU parsing succeeded, but no usable JSON payload was returned.',
-          ),
+          parseResult.mode === 'lightweight'
+            ? lRef.current(
+                'MinerU 轻量解析成功，但未返回可用的 Markdown 内容',
+                'MinerU lightweight parsing succeeded, but no usable Markdown payload was returned.',
+              )
+            : lRef.current(
+                'MinerU 解析成功，但未返回可用的 JSON 内容',
+                'MinerU parsing succeeded, but no usable JSON payload was returned.',
+              ),
         );
       }
 
-      const pages = parseMineruPages(jsonText);
+      const pages = parseMineruAnyText(text);
       let nextMineruPath =
-        result.contentJsonPath || result.middleJsonPath || `cloud:${result.fileName}:${result.batchId}`;
-      let nextStatusMessage = lRef.current(
-        `云端解析完成，批次号 ${result.batchId}`,
-        `Cloud parsing finished. Batch ID: ${result.batchId}`,
-      );
+        result.contentJsonPath ||
+        result.middleJsonPath ||
+        result.markdownPath ||
+        `cloud:${result.fileName}:${result.batchId}`;
+      let nextStatusMessage =
+        parseResult.mode === 'lightweight'
+          ? lRef.current('轻量解析完成', 'Lightweight parsing finished')
+          : lRef.current(
+              `云端解析完成，批次号 ${result.batchId}`,
+              `Cloud parsing finished. Batch ID: ${result.batchId}`,
+            );
 
       if (currentDocument) {
         const savedPaths = await saveMineruParseCache({
@@ -1606,7 +1615,12 @@ function DocumentReaderTab({
           nextMineruPath =
             result.contentJsonPath ||
             result.middleJsonPath ||
-            (result.contentJsonText?.trim() ? savedPaths.contentJsonPath : savedPaths.middleJsonPath);
+            result.markdownPath ||
+            (result.contentJsonText?.trim()
+              ? savedPaths.contentJsonPath
+              : result.middleJsonText?.trim()
+                ? savedPaths.middleJsonPath
+                : savedPaths.markdownPath);
           nextStatusMessage = lRef.current(
             `已保存云端解析结果到：${savedPaths.directory}`,
             `Saved the cloud parsing output to: ${savedPaths.directory}`,
@@ -3903,6 +3917,7 @@ function DocumentReaderTab({
         onClearSelectedExcerpt={handleClearSelectedExcerpt}
         onPdfAnnotationSaveSuccess={handlePdfAnnotationSaveSuccess}
         aiConfigured={aiConfigured}
+        translationConfigured={translationConfigured}
         assistantDetached={assistantDetached}
         leftSidebarCollapsed={false}
         onToggleLeftSidebar={() => undefined}
@@ -3914,4 +3929,3 @@ function DocumentReaderTab({
 }
 
 export default DocumentReaderTab;
-
