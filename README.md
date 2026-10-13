@@ -21,6 +21,7 @@
 </p>
 
 <p align="center">
+  <a href="#changes-in-this-fork">Fork Changes</a> |
   <a href="#quick-navigation">Quick Navigation</a> |
   <a href="#paperquay---open-ai-paper-workspace-that-keeps-reading-flow-intact">Why PaperQuay</a> |
   <a href="#completed-features">Features</a> |
@@ -30,6 +31,36 @@
 
 <p align="center">
   <img src="./docs/assets/readme-hero.svg" alt="PaperQuay feature overview" width="920">
+</p>
+
+---
+
+## Changes in This Fork
+
+These screenshots were captured from this branch with synthetic demo PDFs. They show the changes made in this fork; the general PaperQuay screenshots further below come from the upstream project.
+
+<p align="center">
+  <img src="./docs/assets/fork-library-grid.png" alt="PaperQuay card view with covers rendered from the first page of demo PDFs" width="960">
+</p>
+
+<p align="center">
+  <em>Library cards preview each PDF's first page. The controls above the cards switch between grid and list views.</em>
+</p>
+
+<p align="center">
+  <img src="./docs/assets/fork-mineru-settings.png" alt="MinerU settings showing the keyless lightweight parsing mode" width="960">
+</p>
+
+<p align="center">
+  <em>Leaving the Token field empty selects lightweight MinerU Agent parsing; entering a Token selects the existing precision mode. Lightweight results contain Markdown text but no precise PDF region coordinates.</em>
+</p>
+
+<p align="center">
+  <img src="./docs/assets/fork-reader-markdown.png" alt="PaperQuay reader showing a demo PDF beside blocks restored from lightweight MinerU Markdown" width="960">
+</p>
+
+<p align="center">
+  <em>Lightweight Markdown is restored as reading blocks beside the original PDF. Full-text translation requires a separately configured model.</em>
 </p>
 
 ---
@@ -127,7 +158,7 @@ The agent workspace is designed for library operations, not just conversation. I
 | 1. Import PDFs         | Drag PDFs into the app or choose files from the import dialog.                        |
 | 2. Confirm metadata    | Review title, authors, year, venue, DOI, abstract, keywords, and duplicate warnings.  |
 | 3. Organize library    | Create categories, drag papers into collections, add tags, and mark favorites.        |
-| 4. Parse with MinerU   | Convert PDFs into structured blocks with page-region linkage.                         |
+| 4. Parse with MinerU   | Convert PDFs into reading blocks; precision mode also provides PDF region coordinates. |
 | 5. Generate overviews  | Produce reusable paper overviews for fast screening and later review.                 |
 | 6. Translate full text | Cache translated blocks so reading can jump instantly between source and translation. |
 | 7. Read and annotate   | Highlight, write, add notes, jump to annotations, and export annotated PDFs.          |
@@ -193,7 +224,7 @@ These items are implemented in the current desktop app.
 6. Drag papers into categories, add tags, mark favorites, and open papers in the reader.
 7. Open Notes to create rich-text notes, link related ideas, and connect notes to papers.
 8. Configure an OpenAI-compatible endpoint and model if you want AI features.
-9. Configure a MinerU API key if you want MinerU parsing.
+9. For MinerU parsing, leave the Token empty for lightweight mode or configure a Token for precision mode.
 10. Optionally connect a Zotero data directory and import existing Zotero collections and PDFs.
 
 ---
@@ -227,7 +258,7 @@ The Notes editor uses the official Tiptap packages and was implemented against t
 
 Optional external services:
 
-- MinerU API key for cloud PDF structure parsing.
+- A MinerU Token for precision parsing; lightweight MinerU Agent parsing works without one.
 - OpenAI-compatible API key for paper overviews, translation, QA, and agent tasks.
 - Internet access for OpenAlex and Crossref metadata enrichment.
 - Optional OpenAlex premium API key and `mailto` polite-pool email for steadier batch metadata lookup.

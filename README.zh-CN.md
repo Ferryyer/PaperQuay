@@ -21,6 +21,7 @@
 </p>
 
 <p align="center">
+  <a href="#本分支的二次开发">本分支改动</a> |
   <a href="#快速导航">快速导航</a> |
   <a href="#paperquay---保持阅读心流的开源-ai-论文工作台">为什么选择 PaperQuay</a> |
   <a href="#已完成功能">当前功能</a> |
@@ -30,6 +31,36 @@
 
 <p align="center">
   <img src="./docs/assets/readme-hero.svg" alt="PaperQuay feature overview" width="920">
+</p>
+
+---
+
+## 本分支的二次开发
+
+以下截图取自当前分支，使用临时生成的演示 PDF，不含真实论文或私人数据。后文展示 PaperQuay 通用界面的图片来自上游项目。
+
+<p align="center">
+  <img src="./docs/assets/fork-library-grid.png" alt="以演示 PDF 首页为封面的 PaperQuay 文献库卡片视图" width="960">
+</p>
+
+<p align="center">
+  <em>文献卡片展示 PDF 首页封面；卡片上方可切换网格与列表视图。</em>
+</p>
+
+<p align="center">
+  <img src="./docs/assets/fork-mineru-settings.png" alt="显示免 Key 轻量解析模式的 MinerU 设置界面" width="960">
+</p>
+
+<p align="center">
+  <em>Token 留空时使用 MinerU Agent 轻量解析；填写 Token 后使用原有精准模式。轻量结果为 Markdown，不含精确的 PDF 区域坐标。</em>
+</p>
+
+<p align="center">
+  <img src="./docs/assets/fork-reader-markdown.png" alt="演示 PDF 与轻量 MinerU Markdown 还原的结构块并排显示" width="960">
+</p>
+
+<p align="center">
+  <em>轻量解析的 Markdown 可还原为阅读结构块，与原 PDF 并排查看；全文翻译需另行配置模型。</em>
 </p>
 
 ---
@@ -127,7 +158,7 @@ Agent 工作区不是普通聊天框，而是面向文献库操作设计。它�
 | 1. 导入 PDF | 将 PDF 拖入软件，或从导入窗口选择文件。 |
 | 2. 确认元数据 | 检查标题、作者、年份、期刊/会议、DOI、摘要、关键词和重复提示。 |
 | 3. 整理文献库 | 创建分类，将论文拖入分类，添加标签并标记收藏。 |
-| 4. MinerU 解析 | 将 PDF 转成结构化块，并建立页面区域关联。 |
+| 4. MinerU 解析 | 将 PDF 转成阅读结构块；精准模式还提供 PDF 区域坐标。 |
 | 5. 生成论文概览 | 保存可复用的论文速读结果，便于后续筛选和回顾。 |
 | 6. 全文翻译 | 缓存翻译后的结构块，让阅读时可以瞬间切换原文与译文。 |
 | 7. 阅读与批注 | 高亮、写字、添加笔记、跳转批注，并导出批注后的 PDF。 |
@@ -193,7 +224,7 @@ Agent 工作区不是普通聊天框，而是面向文献库操作设计。它�
 6. 将文献拖入分类，添加标签，标记收藏，然后打开阅读。
 7. 打开 Notes 工作区，创建富文本笔记、连接相关想法，并把笔记和文献关联起来。
 8. 如需 AI 功能，在设置中配置 OpenAI 兼容接口和模型。
-9. 如需 MinerU 解析，在设置中配置 MinerU API key。
+9. 如需 MinerU 解析，可留空 Token 使用轻量模式，或填写 Token 使用精准模式。
 10. 如果已有 Zotero 文库，可以在设置中选择 Zotero 数据目录并导入分类和 PDF。
 
 ---
@@ -227,7 +258,7 @@ PaperQuay 使用 Electron 作为桌面宿主。React 渲染进程通过 IPC 调�
 
 可选外部服务：
 
-- MinerU API key：用于云端 PDF 结构解析。
+- MinerU Token：精准解析需要填写；MinerU Agent 轻量解析无需 Token。
 - OpenAI 兼容 API key：用于论文概览、翻译、问答和 Agent。
 - 网络连接：用于 OpenAlex 和 Crossref 元数据补全。
 - 可选 OpenAlex Premium API key 和 `mailto` polite-pool 邮箱：用于更稳定的批量元数据查询。
